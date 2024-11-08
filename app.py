@@ -30,7 +30,7 @@ def api_login(context: ContextTypes.DEFAULT_TYPE):
             refresh_token = response.json()['message']['refresh_token']
             return response.json()['message']['access_token']
         else:
-            context.application.create_task(notify_invalid_response(context, "Ошибка: Не удалось получить токен авторизации."))
+            context.application.create_task(notify_invalid_response(context, f"Ошибка: Не удалось получить токен авторизации. {response.status_code}"))
             return None
     else:
         json_data = {
@@ -45,7 +45,7 @@ def api_login(context: ContextTypes.DEFAULT_TYPE):
             refresh_token = response.json()['message']['refresh_token']
             return response.json()['message']['access_token']
         else:
-            context.application.create_task(notify_invalid_response(context, "Ошибка: Не удалось обновить токен авторизации."))
+            context.application.create_task(notify_invalid_response(context, f"Ошибка: Не удалось обновить токен авторизации. {response.status_code}"))
             return None
 
 async def notify_invalid_response(context: ContextTypes.DEFAULT_TYPE, message: str = "Ошибка: Не удалось получить данные от API. Проверьте соединение или повторите попытку позже."):
