@@ -66,10 +66,12 @@ def make_api_request(context: ContextTypes.DEFAULT_TYPE):
         notify_invalid_response(context, "Ошибка: Не удалось получить данные от API.")
 
 async def periodic_api_check(context: ContextTypes.DEFAULT_TYPE):
+    flag = True
     stores = make_api_request(context)
     if stores['status'] == True:
         for device in stores['message']:
             if device['status'] == False:
+                flag = False
                 await context.bot.send_message(
                     chat_id=context.job.chat_id,
                     text=f"Магазин {device['name']} камера не доступна."
@@ -77,10 +79,11 @@ async def periodic_api_check(context: ContextTypes.DEFAULT_TYPE):
     if stores is None:
         await notify_invalid_response(context)
     else:
-        await context.bot.send_message(
-            chat_id=context.job.chat_id,
-            text="Данные успешно получены от API. Вы можете запросить список магазинов командой /get_stores."
-        )
+        if flag:
+            await context.bot.send_message(
+                chat_id=context.job.chat_id,
+                text="Данные успешно получены от API. Вы можете запросить список магазинов командой /get_stores."
+            )
 
 async def get_stores(update: Update, context: ContextTypes.DEFAULT_TYPE):
     stores = make_api_request(context)
