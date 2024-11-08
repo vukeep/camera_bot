@@ -6,7 +6,7 @@ import os
 
 load_dotenv()
 
-# Telegram Bot API Token (замените на токен вашего бота)
+# Telegram Bot API Token и учетные данные
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_KEY")
 LOGIN = os.getenv("LOGIN")
 PASSWORD = os.getenv("PASSWORD")
@@ -26,11 +26,12 @@ def api_login(context: ContextTypes.DEFAULT_TYPE):
         }
         response = requests.post('https://ipeye.ru/api/rest/users/login', headers=headers, json=json_data)
         if response.status_code == 200:
-            LOGIN_FLAG = True
+            LOGIN_FLAG = False
             refresh_token = response.json()['message']['refresh_token']
             return response.json()['message']['access_token']
         else:
-            notify_invalid_response(context, "Ошибка: Не удалось получить токен авторизации.")
+            context.application.create_task(notify_invalid_response(context, "Ошибка: Не удалось получить токен авторизации."))
+            return None
     else:
         json_data = {
             "refresh_token": refresh_token
@@ -44,7 +45,8 @@ def api_login(context: ContextTypes.DEFAULT_TYPE):
             refresh_token = response.json()['message']['refresh_token']
             return response.json()['message']['access_token']
         else:
-            notify_invalid_response(context, "Ошибка: Не удалось обновить токен авторизации.")
+            context.application.create_task(notify_invalid_response(context, "Ошибка: Не удалось обновить токен авторизации."))
+            return None
 
 async def notify_invalid_response(context: ContextTypes.DEFAULT_TYPE, message: str = "Ошибка: Не удалось получить данные от API. Проверьте соединение или повторите попытку позже."):
     await context.bot.send_message(
@@ -63,12 +65,13 @@ def make_api_request(context: ContextTypes.DEFAULT_TYPE):
     if response.status_code == 200:
         return response.json()
     else:
-        notify_invalid_response(context, "Ошибка: Не удалось получить данные от API.")
+        context.application.create_task(notify_invalid_response(context, "Ошибка: Не удалось получить данные от API."))
+        return None
 
 async def periodic_api_check(context: ContextTypes.DEFAULT_TYPE):
     flag = True
     stores = make_api_request(context)
-    if stores['status'] == True:
+    if stores and stores.get('status') == True:
         for device in stores['message']:
             if device['status'] == False:
                 flag = False
@@ -88,7 +91,7 @@ async def periodic_api_check(context: ContextTypes.DEFAULT_TYPE):
 async def get_stores(update: Update, context: ContextTypes.DEFAULT_TYPE):
     stores = make_api_request(context)
     stores_list = ""
-    if stores['status'] == True:
+    if stores and stores.get('status') == True:
         for device in stores['message']:
             if device['status'] == False:
                 stores_list += f"Магазин {device['name']} камера не доступна.\n"
