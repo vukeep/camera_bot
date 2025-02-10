@@ -81,23 +81,26 @@ async def periodic_api_check(context: ContextTypes.DEFAULT_TYPE):
                 )
     if stores is None:
         await notify_invalid_response(context)
-    else:
-        if flag:
-            await context.bot.send_message(
-                chat_id=context.job.chat_id,
-                text="Данные успешно получены от API. Вы можете запросить список магазинов командой /get_stores."
-            )
+    # else:
+    #     if flag:
+    #         await context.bot.send_message(
+    #             chat_id=context.job.chat_id,
+    #             text="Данные успешно получены от API. Вы можете запросить список магазинов командой /get_stores."
+    #         )
 
 async def get_stores(update: Update, context: ContextTypes.DEFAULT_TYPE):
     stores = make_api_request(context)
-    stores_list = ""
+    stores_list_good = ""
+    stores_list_bad = ""
     if stores and stores.get('status') == True:
         for device in stores['message']:
             if device['status'] == False:
-                stores_list += f"Магазин {device['name']} камера не доступна.\n"
+                stores_list_bad += f"Магазин {device['name']} камера не доступна.\n"
+            else:
+                stores_list_good += f"Магазин {device['name']} камера доступна.\n"
     else:
-        stores_list = "Ошибка: Не удалось получить данные от API. Проверьте соединение или повторите попытку позже."
-    await update.message.reply_text(f"Список магазинов:\n{stores_list}")
+        stores_list_bad = "Ошибка: Не удалось получить данные от API. Проверьте соединение или повторите попытку позже."
+    await update.message.reply_text(f"Список магазинов:\n{stores_list_good}\n{stores_list_bad}")
 
 async def start_periodic_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
     job = context.job_queue.run_repeating(periodic_api_check, interval=600, first=0, chat_id=update.effective_chat.id)
